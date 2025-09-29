@@ -1,0 +1,119 @@
+#Reading the file
+df <- read.csv("project1_df.csv", na.strings = c("", "NA"))
+
+library(tidyverse)
+library(dplyr)
+library(ggplot2)
+
+#Identifying missing values and replacing them
+colSums(is.na(df))
+df$Discount.Name[is.na(df$Discount.Name)] <- "No Discount"
+
+#Removing duplicates
+sum(duplicated(df))
+
+#Correcting the data types
+
+str(df)
+
+df$Purchase.Date <- as.Date(df$Purchase.Date, format = "%y-%m-%d")
+df$Gender <- as.factor(df$Gender)
+df$Age.Group <- as.factor(df$Age.Group)
+df$Product.Category <- as.factor(df$Product.Category)
+df$Discount.Availed <- as.factor(df$Discount.Availed)
+df$Discount.Name <- as.factor(df$Discount.Name)
+df$Purchase.Method <- as.factor(df$Purchase.Method)
+df$Location <- as.factor(df$Location)
+
+#Basic stats
+#Net amount
+mean(df$Net.Amount, na.rm = TRUE)
+median(df$Net.Amount, na.rm = TRUE)
+min(df$Net.Amount, na.rm = TRUE)
+max(df$Net.Amount, na.rm = TRUE)
+
+#Gross Amount
+mean(df$Gross.Amount, na.rm = TRUE)
+median(df$Gross.Amount, na.rm = TRUE)
+min(df$Gross.Amount, na.rm = TRUE)
+max(df$Gross.Amount, na.rm = TRUE)
+
+#Discount amount
+mean(df$Discount.Amount..INR., na.rm = TRUE)
+median(df$Discount.Amount..INR., na.rm = TRUE)
+min(df$Discount.Amount..INR., na.rm = TRUE)
+max(df$Discount.Amount..INR., na.rm = TRUE)
+
+#Trasactional sales data KPI's
+#Total revenue
+total_revenue <- sum(df$Net.Amount, na.rm = TRUE)
+
+#Average order value
+Average_order_value <- mean(df$Net.Amount,na.rm = TRUE)
+
+#Number of unique customers
+Unique_customers <- length(unique(df$CID))
+
+#Orders by product category
+Orders_Category <- df%>%
+  group_by(Product.Category)%>%
+  summarise(Total_Orders = n(), Total_Sales = sum(Net.Amount, na.rm = TRUE))
+
+#Sales by purchase method
+df%>%
+  select(Net.Amount,Purchase.Method)%>%
+  group_by(Purchase.Method)%>%
+  summarise(sum(Net.Amount))
+
+#Repeat customers
+Repeat_customers <- df%>%
+  group_by(CID)%>%
+  summarise(order_count = n())%>%
+  filter(order_count > 1)
+
+nrow(Repeat_customers)
+
+
+#univariate analysis (Gross amount)
+ggplot(df, aes(x = Gross.Amount))+
+  geom_histogram(binwidth = 100, fill = "skyblue",color = "black")+
+  labs(title = "Distribution of Gross Amount", x = "Gross amount", y = "Frequency")
+
+#univariate analysis (Net amount)
+ggplot(df, aes(x = Net.Amount))+
+  geom_histogram(binwidth = 100, fill = "lightgreen",color = "black")+
+  labs(title = "Distribution of Net Amount", x = "Gross amount", y = "Frequency")
+
+#Bar charts of top 10 companies
+df %>%
+  count(Location, sort = TRUE) %>%
+  slice_head(n = 10) %>%
+  ggplot(aes(x = reorder(Location, n), y = n, fill = Location))+
+  geom_col()+
+  coord_flip()+
+  labs(title = "Top 10 Locations by Number of orders", x = "Location", y = "Order count")
+
+#Bivariate Analysis
+ggplot(df, aes(x = Gross.Amount, y = Net.Amount))+
+  geom_point(alpha = 0.5, color = "blue")+
+  labs(title = "Gross Amount vs Net Amount", x = "Gross Amount", y = "Net Amount")
+
+#Total sales by Location
+df %>%
+  group_by(Location)%>%
+  summarise(count(Location))%>%
+  arrange(desc(Total_Sales))%>%
+  slice_head(n = 10)%>%
+  ggplot(aes(x = reorder(Location, Total_Sales), y = Total_Sales, fill = Location))+
+  geom_col()+
+  coord_flip()+
+  labs(title = "Top 10 Locations by Net Sales", x = "Location", y = "Total Net Sales")
+
+#Correlation analysis between gross and net amount
+cor(df$Gross.Amount, df$Net.Amount)
+
+#Correlation analysis between discount and net amount
+cor(df$Discount.Amount..INR., df$Net.Amount)
+
+#Correlation analysis between gross and discount amount
+cor(df$Gross.Amount, df$Discount.Amount..INR.)
